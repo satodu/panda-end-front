@@ -1,0 +1,23 @@
+# Ignore build logs
+*.log
+
+# Ignore large downloaded binary zip and folders
+/binaries/
+
+# Ignore temporary resources directory where Laravel bundles are compiled/built
+/resources/
+
+# Gradle / Android Studio local files & build outputs
+/android/.gradle/
+/android/.idea/
+/android/.kotlin/
+/android/local.properties
+/android/app/build/
+/android/app/.cxx/
+
+# Ignore Firebase configs (if added locally for push notifications)
+/android/app/google-services.json
+
+# Ignore bundled app zip and meta generated in assets during build
+/android/app/src/main/assets/laravel_bundle.zip
+/android/app/src/main/assets/bundle_meta.json
