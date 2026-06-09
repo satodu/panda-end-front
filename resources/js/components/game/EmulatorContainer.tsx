@@ -138,8 +138,8 @@ export default function EmulatorContainer({ game, onExit }: EmulatorContainerPro
       {/* Simulator canvas / EmulatorJS Iframe Container */}
       <div 
         style={{
-          paddingLeft: 'var(--inset-left, env(safe-area-inset-left, 0px))',
-          paddingRight: 'var(--inset-right, env(safe-area-inset-right, 0px))',
+          paddingLeft: isAndroid ? 'max(var(--inset-left, env(safe-area-inset-left, 0px)), 32px)' : 'var(--inset-left, env(safe-area-inset-left, 0px))',
+          paddingRight: isAndroid ? 'max(var(--inset-right, env(safe-area-inset-right, 0px)), 32px)' : 'var(--inset-right, env(safe-area-inset-right, 0px))',
           paddingTop: 'var(--inset-top, env(safe-area-inset-top, 0px))',
           paddingBottom: 'var(--inset-bottom, env(safe-area-inset-bottom, 0px))'
         }}

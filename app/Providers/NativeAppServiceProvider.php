@@ -13,7 +13,13 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function boot(): void
     {
-        Window::open();
+        Window::open()
+            ->title('Panda End')
+            ->width(1280)
+            ->height(800)
+            ->minWidth(1024)
+            ->minHeight(768)
+            ->rememberState();
     }
 
     /**

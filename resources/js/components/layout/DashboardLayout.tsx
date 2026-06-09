@@ -40,9 +40,11 @@ export default function DashboardLayout({
           
           {/* Logo / Branding */}
           <div className="flex items-center space-x-3">
-            <div className="bg-purple-600 p-2.5 rounded-xl shadow-lg shadow-purple-500/20">
-              <span className="text-xl">🐼</span>
-            </div>
+            <img 
+              src="/images/panda-end-icon.png" 
+              alt="Panda End" 
+              className="w-10 h-10 object-contain rounded-xl shadow-lg shadow-purple-500/20"
+            />
             <div>
               <h1 className="font-bold text-lg text-zinc-50 leading-none">Panda End</h1>
               <span className="text-[10px] text-zinc-500 font-medium leading-tight">{t('sidebar.subtitle')}</span>
@@ -153,7 +155,11 @@ export default function DashboardLayout({
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between px-6 py-4 border-b border-zinc-900 bg-zinc-950/40 backdrop-blur-sm sticky top-0 z-30">
           <div className="flex items-center space-x-2">
-            <span className="text-xl">🐼</span>
+            <img 
+              src="/images/panda-end-icon.png" 
+              alt="Panda End" 
+              className="w-7 h-7 object-contain"
+            />
             <span className="font-bold text-zinc-50">Panda End</span>
           </div>
           <div className="flex items-center space-x-2">

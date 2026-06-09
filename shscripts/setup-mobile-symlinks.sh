@@ -67,6 +67,7 @@ echo "---------------------"
 # Garante que a pasta public/capas não existe como pasta real no mobile
 make_link "../../public/capas"  "$MOBILE/public/capas"
 make_link "../../public/emulatorjs" "$MOBILE/public/emulatorjs"
+make_link "../../public/images" "$MOBILE/public/images"
 
 echo ""
 echo "📦  node_modules (opcional — só se quiser compartilhar)"

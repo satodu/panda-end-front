@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-interface User {
+export interface User {
   email: string;
   is_premium: boolean;
+  is_guest?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => Promise<void>;
-  register: (email: string) => Promise<void>;
+  login: (email: string, password?: string) => Promise<void>;
+  register: (email: string, password?: string) => Promise<void>;
+  loginAsGuest: () => void;
   logout: () => void;
   togglePremium: () => void;
 }
@@ -30,30 +32,84 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string) => {
-    // Simulate API request delay
+  const getLocalUsers = (): any[] => {
+    const usersJson = localStorage.getItem('panda_end_local_users');
+    return usersJson ? JSON.parse(usersJson) : [];
+  };
+
+  const saveLocalUsers = (users: any[]) => {
+    localStorage.setItem('panda_end_local_users', JSON.stringify(users));
+  };
+
+  const login = async (email: string, password?: string) => {
     await new Promise((resolve) => setTimeout(resolve, 800));
     
-    // Simple mock logic: if email contains 'premium', give them premium status by default
-    const isPremiumDefault = email.toLowerCase().includes('premium') || email.toLowerCase().includes('panda');
-    
+    // Auto-create default accounts for convenience if they don't exist
+    const normalizedEmail = email.toLowerCase().trim();
+    const isDefaultPremium = normalizedEmail === 'premium@panda.com' || normalizedEmail === 'panda@panda.com';
+    const users = getLocalUsers();
+
+    if (isDefaultPremium && !users.find(u => u.email === normalizedEmail)) {
+      users.push({
+        email: normalizedEmail,
+        password: password || '123456',
+        is_premium: true
+      });
+      saveLocalUsers(users);
+    }
+
+    const matchedUser = users.find(u => u.email === normalizedEmail);
+
+    if (!matchedUser || (password && matchedUser.password !== password)) {
+      throw new Error('E-mail ou senha incorretos.');
+    }
+
     const loggedUser: User = {
-      email,
-      is_premium: isPremiumDefault,
+      email: matchedUser.email,
+      is_premium: matchedUser.is_premium,
     };
     
     setUser(loggedUser);
     localStorage.setItem('panda_end_user', JSON.stringify(loggedUser));
   };
 
-  const register = async (email: string) => {
+  const register = async (email: string, password?: string) => {
     await new Promise((resolve) => setTimeout(resolve, 800));
-    const loggedUser: User = {
-      email,
-      is_premium: false, // Starts as Free tier
+    const normalizedEmail = email.toLowerCase().trim();
+    const users = getLocalUsers();
+
+    if (users.find(u => u.email === normalizedEmail)) {
+      throw new Error('Este e-mail já está cadastrado.');
+    }
+
+    const isPremiumDefault = normalizedEmail.includes('premium') || normalizedEmail.includes('panda');
+
+    const newUser = {
+      email: normalizedEmail,
+      password: password || '',
+      is_premium: isPremiumDefault,
     };
+
+    users.push(newUser);
+    saveLocalUsers(users);
+
+    const loggedUser: User = {
+      email: newUser.email,
+      is_premium: newUser.is_premium,
+    };
+
     setUser(loggedUser);
     localStorage.setItem('panda_end_user', JSON.stringify(loggedUser));
+  };
+
+  const loginAsGuest = () => {
+    const guestUser: User = {
+      email: 'guest@panda.com',
+      is_premium: false,
+      is_guest: true
+    };
+    setUser(guestUser);
+    localStorage.setItem('panda_end_user', JSON.stringify(guestUser));
   };
 
   const logout = () => {
@@ -66,11 +122,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedUser = { ...user, is_premium: !user.is_premium };
       setUser(updatedUser);
       localStorage.setItem('panda_end_user', JSON.stringify(updatedUser));
+      
+      // Update in the local user database as well
+      const users = getLocalUsers();
+      const userIdx = users.findIndex(u => u.email === user.email);
+      if (userIdx !== -1) {
+        users[userIdx].is_premium = updatedUser.is_premium;
+        saveLocalUsers(users);
+      }
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, togglePremium }}>
+    <AuthContext.Provider value={{ user, login, register, loginAsGuest, logout, togglePremium }}>
       {children}
     </AuthContext.Provider>
   );

@@ -164,9 +164,25 @@ export default function ImportView({ onSuccess }: ImportViewProps) {
     formData.append('system', system);
     formData.append('rom_file', file);
 
+    const getUserEmail = (): string => {
+      const storedUser = localStorage.getItem('panda_end_user');
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          if (parsed && parsed.email) {
+            return parsed.email;
+          }
+        } catch (e) {}
+      }
+      return 'default';
+    };
+
     try {
       const response = await fetch('/api/roms/import', {
         method: 'POST',
+        headers: {
+          'X-User-Email': getUserEmail(),
+        },
         body: formData,
       });
 

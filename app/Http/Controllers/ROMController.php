@@ -9,19 +9,33 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ROMController extends Controller
 {
-    private string $metadataFile = 'roms/metadata.json';
+    private function getMetadataFile(Request $request): string
+    {
+        $userEmail = $request->header('X-User-Email') ?: 'default';
+        $safeEmail = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $userEmail);
+        $newPath = 'roms/metadata_' . $safeEmail . '.json';
+        
+        // Migrate legacy file for default/anonymous user
+        if ($safeEmail === 'default' && !Storage::disk('local')->exists($newPath) && Storage::disk('local')->exists('roms/metadata.json')) {
+            Storage::disk('local')->copy('roms/metadata.json', $newPath);
+        }
+        
+        return $newPath;
+    }
 
     /**
      * Get list of all imported ROMs from the local JSON database.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        if (!Storage::disk('local')->exists($this->metadataFile)) {
+        $metadataFile = $this->getMetadataFile($request);
+        
+        if (!Storage::disk('local')->exists($metadataFile)) {
             return response()->json([]);
         }
 
         try {
-            $content = Storage::disk('local')->get($this->metadataFile);
+            $content = Storage::disk('local')->get($metadataFile);
             $roms = json_decode($content, true) ?: [];
             
             // Remove filePath from output to keep API clean
@@ -58,17 +72,20 @@ class ROMController extends Controller
         $title = $request->input('title');
         $system = $request->input('system');
 
+        $userEmail = $request->header('X-User-Email') ?: 'default';
+        $safeEmail = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $userEmail);
+
         if ($request->has('temp_file_path') && file_exists($request->input('temp_file_path'))) {
             $tempPath = $request->input('temp_file_path');
             $fileName = basename($tempPath);
             // Create an UploadedFile mock from local path to copy via Laravel Storage
             $uploadedFile = new \Illuminate\Http\UploadedFile($tempPath, $fileName, null, null, true);
-            $storedPath = Storage::disk('local')->putFile('roms/files', $uploadedFile);
+            $storedPath = Storage::disk('local')->putFile('roms/files/' . $safeEmail, $uploadedFile);
             // Clean up the temp file
             @unlink($tempPath);
         } else {
             $file = $request->file('rom_file');
-            $storedPath = Storage::disk('local')->putFile('roms/files', $file);
+            $storedPath = Storage::disk('local')->putFile('roms/files/' . $safeEmail, $file);
         }
 
         if (!$storedPath) {
@@ -265,8 +282,9 @@ class ROMController extends Controller
 
         // Load existing metadata
         $roms = [];
-        if (Storage::disk('local')->exists($this->metadataFile)) {
-            $content = Storage::disk('local')->get($this->metadataFile);
+        $metadataFile = $this->getMetadataFile($request);
+        if (Storage::disk('local')->exists($metadataFile)) {
+            $content = Storage::disk('local')->get($metadataFile);
             $roms = json_decode($content, true) ?: [];
         }
 
@@ -288,7 +306,7 @@ class ROMController extends Controller
         $roms[$id] = $newRom;
 
         // Save metadata back
-        Storage::disk('local')->put($this->metadataFile, json_encode($roms, JSON_PRETTY_PRINT));
+        Storage::disk('local')->put($metadataFile, json_encode($roms, JSON_PRETTY_PRINT));
 
         return response()->json([
             'success' => true,
@@ -308,18 +326,34 @@ class ROMController extends Controller
      */
     public function serveFile(string $id): BinaryFileResponse|JsonResponse
     {
-        if (!Storage::disk('local')->exists($this->metadataFile)) {
+        // Find the ROM metadata by scanning all metadata files
+        $rom = null;
+        $files = Storage::disk('local')->files('roms');
+        foreach ($files as $file) {
+            if (str_starts_with(basename($file), 'metadata_') && str_ends_with($file, '.json')) {
+                $content = Storage::disk('local')->get($file);
+                $roms = json_decode($content, true) ?: [];
+                if (isset($roms[$id])) {
+                    $rom = $roms[$id];
+                    break;
+                }
+            }
+        }
+        
+        // Fallback for legacy files
+        if (!$rom && Storage::disk('local')->exists('roms/metadata.json')) {
+            $content = Storage::disk('local')->get('roms/metadata.json');
+            $roms = json_decode($content, true) ?: [];
+            if (isset($roms[$id])) {
+                $rom = $roms[$id];
+            }
+        }
+
+        if (!$rom) {
             return response()->json(['message' => 'ROM não encontrada.'], 404);
         }
 
-        $content = Storage::disk('local')->get($this->metadataFile);
-        $roms = json_decode($content, true) ?: [];
-
-        if (!isset($roms[$id])) {
-            return response()->json(['message' => 'ROM inválida.'], 404);
-        }
-
-        $filePath = Storage::disk('local')->path($roms[$id]['filePath']);
+        $filePath = Storage::disk('local')->path($rom['filePath']);
 
         if (!file_exists($filePath)) {
             return response()->json(['message' => 'Arquivo físico da ROM não localizado.'], 404);
@@ -334,14 +368,15 @@ class ROMController extends Controller
     /**
      * Delete a ROM file and associated save file from disk.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        if (!Storage::disk('local')->exists($this->metadataFile)) {
+        $metadataFile = $this->getMetadataFile($request);
+        if (!Storage::disk('local')->exists($metadataFile)) {
             return response()->json(['success' => false, 'message' => 'Nenhuma ROM encontrada.'], 404);
         }
 
         try {
-            $content = Storage::disk('local')->get($this->metadataFile);
+            $content = Storage::disk('local')->get($metadataFile);
             $roms = json_decode($content, true) ?: [];
 
             if (!isset($roms[$id])) {
@@ -356,14 +391,16 @@ class ROMController extends Controller
             }
 
             // Delete associated save file if it exists
-            $saveFile = 'saves/' . $id . '.sav';
+            $userEmail = $request->header('X-User-Email') ?: 'default';
+            $safeEmail = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $userEmail);
+            $saveFile = 'saves/' . $safeEmail . '/' . $id . '.sav';
             if (Storage::disk('local')->exists($saveFile)) {
                 Storage::disk('local')->delete($saveFile);
             }
 
             // Remove entry from metadata array
             unset($roms[$id]);
-            Storage::disk('local')->put($this->metadataFile, json_encode($roms, JSON_PRETTY_PRINT));
+            Storage::disk('local')->put($metadataFile, json_encode($roms, JSON_PRETTY_PRINT));
 
             return response()->json([
                 'success' => true,

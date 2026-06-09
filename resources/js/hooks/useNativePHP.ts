@@ -26,11 +26,34 @@ export function useNativePHP() {
   const [roms, setRoms] = useState<ROM[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const getUserEmail = (): string => {
+    const storedUser = localStorage.getItem('panda_end_user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed && parsed.email) {
+          return parsed.email;
+        }
+      } catch (e) {}
+    }
+    return 'default';
+  };
+
+  const getHeaders = (extra = {}) => {
+    return {
+      'Content-Type': 'application/json',
+      'X-User-Email': getUserEmail(),
+      ...extra
+    };
+  };
+
   // Fetch the list of imported ROMs from the Laravel backend
   const fetchROMs = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/roms');
+      const response = await fetch('/api/roms', {
+        headers: getHeaders()
+      });
       if (response.ok) {
         const data = await response.json();
         setRoms(data);
@@ -40,12 +63,13 @@ export function useNativePHP() {
     } catch (error) {
       console.warn('Falha ao comunicar com o backend do NativePHP, usando fallback do localStorage.', error);
       // LocalStorage fallback for standalone web preview
-      const localRoms = localStorage.getItem('panda_end_roms');
+      const localKey = `panda_end_roms_${getUserEmail()}`;
+      const localRoms = localStorage.getItem(localKey);
       if (localRoms) {
         setRoms(JSON.parse(localRoms));
       } else {
         setRoms([]);
-        localStorage.setItem('panda_end_roms', JSON.stringify([]));
+        localStorage.setItem(localKey, JSON.stringify([]));
       }
     } finally {
       setLoading(false);
@@ -83,13 +107,14 @@ export function useNativePHP() {
         // Under NativePHP, make a call to the PHP backend to store the save on HD/Android
         const response = await fetch('/api/saves/save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getHeaders(),
           body: JSON.stringify({ gameId, stateData }),
         });
         return response.ok;
       } else {
         // Web browser localStorage fallback
-        localStorage.setItem(`panda_save_${gameId}`, stateData);
+        const localSaveKey = `panda_save_${getUserEmail()}_${gameId}`;
+        localStorage.setItem(localSaveKey, stateData);
         return true;
       }
     } catch (e) {
@@ -103,14 +128,17 @@ export function useNativePHP() {
     console.log(`Buscando dados salvos (.sav) do jogo: ${gameId}`);
     try {
       if (window.Native) {
-        const response = await fetch(`/api/saves/load?gameId=${gameId}`);
+        const response = await fetch(`/api/saves/load?gameId=${gameId}`, {
+          headers: getHeaders()
+        });
         if (response.ok) {
           const data = await response.json();
           return data.stateData || null;
         }
         return null;
       } else {
-        return localStorage.getItem(`panda_save_${gameId}`);
+        const localSaveKey = `panda_save_${getUserEmail()}_${gameId}`;
+        return localStorage.getItem(localSaveKey);
       }
     } catch (e) {
       console.error('Falha ao carregar estado de emulação', e);
@@ -143,6 +171,7 @@ export function useNativePHP() {
     try {
       const response = await fetch(`/api/roms/${gameId}`, {
         method: 'DELETE',
+        headers: getHeaders()
       });
       if (response.ok) {
         await fetchROMs();
@@ -152,11 +181,12 @@ export function useNativePHP() {
     } catch (e) {
       console.warn('Falha ao comunicar com backend para deletar ROM, tentando localStorage.', e);
       // Fallback for standalone web view mode
-      const localRoms = localStorage.getItem('panda_end_roms');
+      const localKey = `panda_end_roms_${getUserEmail()}`;
+      const localRoms = localStorage.getItem(localKey);
       if (localRoms) {
         const parsed = JSON.parse(localRoms) as ROM[];
         const updated = parsed.filter((r) => r.id !== gameId);
-        localStorage.setItem('panda_end_roms', JSON.stringify(updated));
+        localStorage.setItem(localKey, JSON.stringify(updated));
         setRoms(updated);
         return true;
       }

@@ -17,7 +17,7 @@ android {
         applicationId = "com.pandaend.app"
         minSdk = 33
         targetSdk = 36
-        versionCode = 19
+        versionCode = 20
         versionName = "0.0.1-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

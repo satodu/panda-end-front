@@ -23,8 +23,11 @@ class SaveStateController extends Controller
             ], 400);
         }
 
-        // Write the save state to local Laravel storage (storage/app/saves/{gameId}.sav)
-        $fileName = 'saves/' . $gameId . '.sav';
+        $userEmail = $request->header('X-User-Email') ?: 'default';
+        $safeEmail = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $userEmail);
+
+        // Write the save state to local Laravel storage (storage/app/saves/{user}/{gameId}.sav)
+        $fileName = 'saves/' . $safeEmail . '/' . $gameId . '.sav';
         Storage::disk('local')->put($fileName, $stateData);
 
         return response()->json([
@@ -47,7 +50,10 @@ class SaveStateController extends Controller
             ], 400);
         }
 
-        $fileName = 'saves/' . $gameId . '.sav';
+        $userEmail = $request->header('X-User-Email') ?: 'default';
+        $safeEmail = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $userEmail);
+
+        $fileName = 'saves/' . $safeEmail . '/' . $gameId . '.sav';
 
         if (Storage::disk('local')->exists($fileName)) {
             $stateData = Storage::disk('local')->get($fileName);

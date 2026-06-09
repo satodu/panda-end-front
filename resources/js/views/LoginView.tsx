@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Loader2, Mail, Lock, Sparkles } from 'lucide-react';
 
 export default function LoginView() {
-  const { login } = useAuth();
+  const { login, register, loginAsGuest } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,9 +25,13 @@ export default function LoginView() {
 
     setLoading(true);
     try {
-      await login(email);
-    } catch (e) {
-      setError('Credenciais inválidas. Tente novamente.');
+      if (isRegistering) {
+        await register(email, password);
+      } else {
+        await login(email, password);
+      }
+    } catch (e: any) {
+      setError(e.message || 'Credenciais inválidas. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -47,9 +51,11 @@ export default function LoginView() {
         
         {/* Branding Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-gradient-to-tr from-purple-600 to-indigo-500 p-4 rounded-3xl shadow-xl shadow-purple-500/20 mb-4 animate-glow">
-            <span className="text-4xl">🐼</span>
-          </div>
+          <img 
+            src="/images/panda-end-logo-transparent.png" 
+            alt="Panda End Logo" 
+            className="h-28 object-contain mb-4 drop-shadow-[0_0_25px_rgba(147,51,234,0.25)]"
+          />
           <h1 className="text-3xl font-extrabold tracking-tight text-white leading-none">Panda End</h1>
           <p className="text-sm text-zinc-500 mt-2 font-medium">O Frontend Definitivo de Emulação Retro</p>
         </div>
@@ -130,6 +136,15 @@ export default function LoginView() {
                 ) : (
                   <span>{isRegistering ? 'Registrar' : 'Entrar na Conta'}</span>
                 )}
+              </Button>
+
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={loginAsGuest}
+                className="w-full border-zinc-850 text-zinc-300 hover:text-white"
+              >
+                Entrar como Convidado (Guest)
               </Button>
 
               {/* Test Tip Banner */}
