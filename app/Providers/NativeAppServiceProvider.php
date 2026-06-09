@@ -22,12 +22,13 @@ class NativeAppServiceProvider implements ProvidesPhpIni
             ->rememberState();
     }
 
-    /**
-     * Return an array of php.ini directives to be set.
-     */
     public function phpIni(): array
     {
         return [
+            'upload_max_filesize' => '2048M',
+            'post_max_size' => '2048M',
+            'memory_limit' => '2048M',
+            'max_execution_time' => '600',
         ];
     }
 }

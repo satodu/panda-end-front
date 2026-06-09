@@ -128,7 +128,11 @@ return [
         'storage/framework/sessions',
         'storage/framework/cache',
         'storage/framework/testing',
-        'storage/logs/laravel.log'
+        'storage/logs/laravel.log',
+        'nativephp',
+        'node_modules',
+        'storage/app/roms/*',
+        'storage/app/saves/*',
     ],
 
     /*

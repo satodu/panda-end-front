@@ -94,7 +94,7 @@ export default function EmulatorContainer({ game, onExit }: EmulatorContainerPro
       if (androidBridge && typeof androidBridge.setBackIntercept === 'function') {
         androidBridge.setBackIntercept(false);
       }
-      if ((window as any).Native) {
+      if ((window as any).Native && typeof (window as any).Native.off === 'function') {
         (window as any).Native.off('backpress', handleAndroidBack);
       }
     };

@@ -86,6 +86,12 @@ return [
         'content',
         'node_modules',
         '*/tests',
+        'nativephp',
+        'mobile',
+        'shscripts',
+        'database/database.sqlite',
+        'storage/app/roms/*',
+        'storage/app/saves/*',
     ],
 
     /**
