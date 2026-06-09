@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/images/panda-end-logo-transparent.png" alt="Panda End Logo" width="180" />
+</p>
+
 # 🐼 Panda End — Retro Emulator Frontend
 
 Panda End is a modern, elegant, and high-performance frontend for retro console emulation, designed to run natively on both **Desktop** and **Mobile (Android)** devices. Powered by **NativePHP** combined with **Laravel**, **Vite**, **React (TypeScript)**, and **EmulatorJS**, it offers offline-first retro gameplay and multiplayer synchronization.

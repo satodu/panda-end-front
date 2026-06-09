@@ -38,9 +38,13 @@ class ROMController extends Controller
             $content = Storage::disk('local')->get($metadataFile);
             $roms = json_decode($content, true) ?: [];
             
-            // Remove filePath from output to keep API clean
-            $cleanRoms = array_map(function ($rom) {
+            // Remove filePath from output to keep API clean and append user identity query param for Android direct stream
+            $userEmail = $request->header('X-User-Email') ?: 'default';
+            $safeEmail = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $userEmail);
+
+            $cleanRoms = array_map(function ($rom) use ($safeEmail) {
                 unset($rom['filePath']);
+                $rom['romUrl'] = $rom['romUrl'] . '?u=' . urlencode($safeEmail);
                 return $rom;
             }, $roms);
 
@@ -316,7 +320,7 @@ class ROMController extends Controller
                 'title' => $title,
                 'system' => $system,
                 'systemLabel' => $systemLabel,
-                'romUrl' => $newRom['romUrl'],
+                'romUrl' => $newRom['romUrl'] . '?u=' . urlencode($safeEmail),
             ]
         ]);
     }

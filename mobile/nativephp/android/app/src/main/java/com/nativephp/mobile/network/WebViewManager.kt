@@ -574,11 +574,22 @@ class WebViewManager(
         val uri = Uri.parse(url)
         val path = uri.path ?: ""
         val romId = path.substringAfterLast("/")
+        val userParam = uri.getQueryParameter("u") ?: "default"
+        val safeEmail = userParam.replace(Regex("[^a-zA-Z0-9_\\-\\.]"), "_")
         
-        Log.d(TAG, "🎮 serving ROM file directly: romId=$romId")
+        Log.d(TAG, "🎮 serving ROM file directly: romId=$romId, userParam=$userParam, safeEmail=$safeEmail")
         
         val storageDir = context.getDir("storage", Context.MODE_PRIVATE)
-        val metadataFile = java.io.File(storageDir, "persisted_data/storage/app/private/roms/metadata.json")
+        var metadataFile = java.io.File(storageDir, "persisted_data/storage/app/private/roms/metadata_$safeEmail.json")
+        
+        // Fallback to legacy metadata.json if metadata_default.json doesn't exist
+        if (!metadataFile.exists() && safeEmail == "default") {
+            val legacyFile = java.io.File(storageDir, "persisted_data/storage/app/private/roms/metadata.json")
+            if (legacyFile.exists()) {
+                metadataFile = legacyFile
+                Log.d(TAG, "Using legacy metadata.json fallback")
+            }
+        }
         
         if (metadataFile.exists()) {
             try {
